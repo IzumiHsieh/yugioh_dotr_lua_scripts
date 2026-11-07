@@ -1,6 +1,8 @@
 local UInt64 = require("UInt64")
 
 local rng_seed_addr = 0x28f850
+local world_deck_addr = 0x0033f524
+local duel_deck_addr = 0x00317670
 
 function mult32(a, b)
     local a1 = (a >> 16)
@@ -90,10 +92,42 @@ function next_seed(seed)
     return add64(mult64(UInt64.new(0x4C957F2D, 0x5851F42D), seed), UInt64.new(1, 0))
 end
 
+dofile 'card-table.lua'
+
+local show_cards = true
+local show_duel_cards = true
+
 function show_rng()
+    local input = joypad.get()
+    if input["P1 L3"] and input["P1 Up"] then
+        show_cards = true
+    end
+    if input["P1 L3"] and input["P1 Down"] then
+        show_cards = false
+    end
+    if input["P1 L3"] and input["P1 Left"] then
+        show_duel_cards = true
+        end
+    if input["P1 L3"] and input["P1 Right"] then
+        show_duel_cards = false
+    end
     local seed = UInt64.new(memory.read_u32_le(rng_seed_addr), memory.read_u32_le(rng_seed_addr+4))
     local pos = get_pos(seed)
     gui.text(10, 40, string.format('seed: %s\npos: %s\n', seed:tohex(16),tostring(pos)))
+    if show_cards then
+        local cards = ''
+        for i=0,39 do
+            cards = cards .. string.format('%2d: %s\n',i,cardlist[memory.read_u16_le(world_deck_addr+2*i)])
+        end
+        gui.text(10, 100, cards)
+    end
+    if show_duel_cards then
+        local cards = ''
+        for i=0,39 do
+            cards = cards .. string.format('%2d: %s\n',i,cardlist[memory.read_u16_le(duel_deck_addr+2*i)])
+        end
+        gui.text(900, 100, cards)
+    end
 end
 
 init_lcg_params()
